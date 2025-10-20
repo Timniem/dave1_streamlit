@@ -141,7 +141,7 @@ if len(selected_rows) > 0:
             view.zoomTo({"chain": chain, "resi": residue_number})
             view.setBackgroundColor("white")
             st.components.v1.html(view._make_html(), height=600)
-            st.caption("Py3DMol visualization (AA change in yellow): Top left = wild-type protein," \
+            st.caption("Py3DMol visualization (AA change in red/pink): Top left = wild-type protein," \
                 "Top right = mutant protein, Bottom left: wild-type protein Van der Waals force surface view," \
                 " Bottom right = mutant protein Van der Waals force surface view", width="stretch")
         else:
