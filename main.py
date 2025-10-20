@@ -5,6 +5,7 @@ import shutil
 import glob
 
 import streamlit as st
+import numpy as np
 import pandas as pd
 import py3Dmol
 
@@ -32,11 +33,16 @@ if not os.path.exists(vus_path):
     st.stop()
 
 
-vkgl_consensus_vus = pd.read_csv(vus_path)
+vkgl_consensus_vus = pd.read_csv(vus_path).sort_values(by="LP", ascending=False)
 
 
 edited_df = st.dataframe(
-    vkgl_consensus_vus[["LP","gene","dna_variant_chrom","dna_variant_pos","dna_variant_ref","dna_variant_alt","delta_aaSeq","TranscriptID"]],
+    vkgl_consensus_vus[["LP","gene","dna_variant_chrom","dna_variant_pos","dna_variant_ref","dna_variant_alt","delta_aaSeq","TranscriptID"]].rename(columns={"LP":"DAVE1 LP score",
+                                                                                                                                                            "dna_variant_chrom":"chrom",
+                                                                                                                                                            "dna_variant_pos":"pos",
+                                                                                                                                                            "dna_variant_ref":"ref",
+                                                                                                                                                            "dna_variant_alt":"alt",
+                                                                                                                                                            "delta_aaSeq":"AAchange"}),
     width="stretch",
     hide_index=True,
     on_select="rerun",
@@ -50,6 +56,11 @@ if len(selected_rows) > 0:
     
     selected_gene = selected_df['UniProtID']
     selected_variant = selected_df['delta_aaSeq']
+    localization = selected_df['ann_proteinLocalization']
+    if type(selected_df['seqFt']) != float:
+        feature = selected_df['seqFt'].split("|")[-1].split("~")
+    else:
+        feature = None
     #st.write(selected_gene)
 
     # Input for FoldX and PDB
@@ -58,9 +69,13 @@ if len(selected_rows) > 0:
 
     selected_df = selected_df.rename(FEATURE_NAMES_DICT)
 
+    st.markdown(f"<p style='text-align: center; color: #333;'>DAVE1 Force plot {selected_gene} {selected_variant} </p>", unsafe_allow_html=True)
     st.pyplot(force_plot(selected_df[features_shap], selected_df[FEATURE_NAMES_DICT.values()], FEATURE_NAMES_DICT.values(), selected_df["LP"]))
 
-    st.markdown("<p style='text-align: center; color: #B0B0B0;'>Note: Large proteins may take longer to visualize </p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: left; color: #555;'>Localization: {localization}</p>", unsafe_allow_html=True)
+    if feature:
+        st.markdown(f"<p style='text-align: left; color: #555;'>Sequence features: {' -> '.join(feature)}</p>", unsafe_allow_html=True)
+
     if st.button("Visualize Variant"):
         # Generate mutant file content
         mutant_string = f"{selected_variant};"
@@ -141,8 +156,10 @@ if len(selected_rows) > 0:
             view.zoomTo({"chain": chain, "resi": residue_number})
             view.setBackgroundColor("white")
             st.components.v1.html(view._make_html(), height=600)
-            st.caption("Py3DMol visualization (AA change in red/pink): Top left = wild-type protein," \
-                "Top right = mutant protein, Bottom left: wild-type protein Van der Waals force surface view," \
-                " Bottom right = mutant protein Van der Waals force surface view", width="stretch")
+            st.caption("Py3DMol visualization (AA change in red/pink): Top left = wild-type protein, " \
+                "Top right = mutant protein, Bottom left: wild-type protein Van der Waals force surface view, " \
+                "Bottom right = mutant protein Van der Waals force surface view", width="stretch")
         else:
             st.error("Could not find output PDB files for visualization.")
+    else:
+        st.markdown("<p style='text-align: center; color: #B0B0B0;'>Note: Large proteins may take longer to visualize </p>", unsafe_allow_html=True)

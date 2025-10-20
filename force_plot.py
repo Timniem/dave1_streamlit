@@ -20,7 +20,7 @@ def plot_scores(shap_scores, raw_scores, ax, predicted_score, maximum_value):
 
         ax.add_patch(polygon)
 
-        if abs(score) < maximum_value / 10 or n >= 2:
+        if abs(score) < 0.075 or n >= 3:
             continue
             
         if n % 2 == 0:
