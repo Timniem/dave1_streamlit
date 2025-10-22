@@ -89,6 +89,7 @@ edited_df = st.dataframe(
 selected_rows = edited_df.selection.rows
 
 if len(selected_rows) > 0:
+    st.markdown("---")
     selected_df = filtered_data.iloc[selected_rows[0]]
     
     selected_prot = selected_df['UniProtID']
@@ -118,6 +119,8 @@ if len(selected_rows) > 0:
     if feature:
         st.markdown(f"<p style='text-align: left; font-size: small; color: #999;'>Sequence features: {' -> '.join(feature)}</p>", unsafe_allow_html=True)
     
+    st.markdown("---")
+
 
     c1, c2, c3 = st.columns(3)
 

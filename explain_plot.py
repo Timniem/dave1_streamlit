@@ -38,7 +38,7 @@ def explain_plot_plotly(shap_values, raw_values, feature_names, predicted_score)
     ))
 
     fig.update_layout(
-        xaxis=dict(title="Score", showgrid=False, range = [0,1]),
+        xaxis=dict(title="DAVE1 score", showgrid=False, range = [0,1]),
         yaxis=dict(
             showticklabels=True,
             showgrid=False,
