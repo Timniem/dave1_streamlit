@@ -7,7 +7,7 @@ def plot_scores(shap_scores, raw_scores, ax, predicted_score, maximum_value):
     cumulative = [predicted_score,]
     for n,i in enumerate(shap_scores):
         score = shap_scores[i]
-        color = "#FF0C57" if score > 0 else "#1E88E5"
+        color = "#FF0C57" if score > 0 else "#017FFD"
         
         neg_score = -score
         if n + 1 < len(shap_scores):

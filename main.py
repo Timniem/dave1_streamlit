@@ -3,6 +3,9 @@ import subprocess
 import gzip
 import shutil
 import glob
+import base64
+from pathlib import Path
+
 
 import streamlit as st
 import numpy as np
@@ -11,6 +14,19 @@ import py3Dmol
 
 from force_plot import force_plot
 
+
+
+# img_to_bytes and img_to_html inspired from https://pmbaumgartner.github.io/streamlitopedia/sizing-and-images.html
+def img_to_bytes(img_path):
+    img_bytes = Path(img_path).read_bytes()
+    encoded = base64.b64encode(img_bytes).decode()
+    return encoded
+def img_to_html(img_path, align=None, size=100):
+    if align:
+        img_html = f"<img src='data:image/png;base64,{img_to_bytes(img_path)}' align={align} style='width:{size}%' class='img-fluid'>"
+    else:
+        img_html = f"<img src='data:image/png;base64,{img_to_bytes(img_path)}' style='width:{size}%' class='img-fluid'>"
+    return img_html
 
 ###CONST###
 FEATURE_NAMES_DICT = {"delta_DNAs_cumu_bin":"DNA binding site","delta_RNAs_cumu_bin":"RNA binding site",
@@ -23,8 +39,9 @@ FEATURE_NAMES_DICT = {"delta_DNAs_cumu_bin":"DNA binding site","delta_RNAs_cumu_
 
 features_shap = [f"{key}.sph" for key in FEATURE_NAMES_DICT.keys()]
 
+st.markdown(f"<div style='background-color: #017FFD; padding:10px; display: flex; justify-content: space-between; align-items: center;'> {img_to_html('logo_blue.png', size=20)} {img_to_html('umcg_logo.png', align='right', size=19)} </div>", unsafe_allow_html=True, width="stretch")
 # Title
-st.markdown("<h3 style='text-align: center; color: #333;'>DAVE1 scores VKGL Datasharing VUS</h3>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #666;'>DAVE1 scores VKGL Datasharing VUS</h2>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #B0B0B0;'>Pathogenicity prediction by the DAVE1 model, for more information: </p>", unsafe_allow_html=True)
 # Load VUS data
 vus_path = "vkgl_apr2024_VUS_pred.csv"
@@ -35,9 +52,19 @@ if not os.path.exists(vus_path):
 
 vkgl_consensus_vus = pd.read_csv(vus_path).sort_values(by="LP", ascending=False)
 
+c1, c2, c3 = st.columns(3)
+
+with c2:
+    search_term = st.text_input(" ").lower()
+
+if search_term:
+    mask = vkgl_consensus_vus.astype(str).apply(lambda col: col.str.lower().str.contains(search_term))
+    filtered_data = vkgl_consensus_vus[mask.any(axis=1)]
+else:
+    filtered_data = vkgl_consensus_vus
 
 edited_df = st.dataframe(
-    vkgl_consensus_vus[["LP","gene","dna_variant_chrom","dna_variant_pos","dna_variant_ref","dna_variant_alt","delta_aaSeq","TranscriptID"]].rename(columns={"LP":"DAVE1 LP score",
+    filtered_data[["LP","gene","dna_variant_chrom","dna_variant_pos","dna_variant_ref","dna_variant_alt","delta_aaSeq","TranscriptID"]].rename(columns={"LP":"DAVE1 LP score",
                                                                                                                                                             "dna_variant_chrom":"chrom",
                                                                                                                                                             "dna_variant_pos":"pos",
                                                                                                                                                             "dna_variant_ref":"ref",
@@ -143,16 +170,19 @@ if len(selected_rows) > 0:
             view.addModel(wt_data, viewer=(0,0))
             view.addModel(wt_data, viewer=(1,0))
             view.setStyle({"stick": {"color": "#B0B0B0","scale": 0.4}, "cartoon": {'color': '#B0B0B0'}}, viewer=(0,0))
+            view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#017FFD'}}, viewer=(0,0))
+            view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#017FFD'}}, viewer=(1,0))
             view.addSurface(py3Dmol.VDW, {'opacity':0.7}, viewer=(1,0))
 
             view.addModel(mut_data, viewer=(0,1))
             view.addModel(mut_data, viewer=(1,1))
             view.setStyle({"stick": {"color": "#B0B0B0","scale": 0.4}, "cartoon": {'color': '#B0B0B0'}}, viewer=(0,1))
+            view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#FF0C57'}}, viewer=(0,1))
+            view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#FF0C57'}}, viewer=(1,1))
             view.addSurface(py3Dmol.VDW,{'opacity':0.7}, viewer=(1,1))
 
             residue_number = int(selected_variant[2:-1])
             chain = selected_variant[1]
-            view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#FF0C57'}})
             view.zoomTo({"chain": chain, "resi": residue_number})
             view.setBackgroundColor("white")
             st.components.v1.html(view._make_html(), height=600)
