@@ -12,9 +12,7 @@ import numpy as np
 import pandas as pd
 import py3Dmol
 
-from force_plot import force_plot
-
-
+from explain_plot import explain_plot_plotly
 
 # img_to_bytes and img_to_html inspired from https://pmbaumgartner.github.io/streamlitopedia/sizing-and-images.html
 def img_to_bytes(img_path):
@@ -28,21 +26,32 @@ def img_to_html(img_path, align=None, size=100):
         img_html = f"<img src='data:image/png;base64,{img_to_bytes(img_path)}' style='width:{size}%' class='img-fluid'>"
     return img_html
 
+# Define a callback function to disable the button
+def disable_button():
+    st.session_state.button_disabled = True
+
 ###CONST###
-FEATURE_NAMES_DICT = {"delta_DNAs_cumu_bin":"DNA binding site","delta_RNAs_cumu_bin":"RNA binding site",
-                 "delta_ProtS_cumu_bin":"Protein binding site","delta_DNAb_binding_affinity_pKd":"DNA binding affinity",
-                 "delta_RNAb_binding_affinity_pKd":"RNA binding affinity","delta_ligand_nr_of_predicted_pockets":"Ligand binding № pockets",
-                 "delta_ligand_rank1_sas_points":"Ligand binding top pocket","delta_charge":"Net electric charge at pH 7",
-                 "delta_hydrophobicMoment":"Hydrophobic moment","delta_hydrophobicity":"Hydrophobicity",
-                 "delta_isoElecPoint":"Isoelectric point", "delta_total.energy":"Folding energy ΔG"}
+FEATURE_NAMES_DICT = {"delta_DNAs_cumu_bin":"DNA binding site (Δ residues) ","delta_RNAs_cumu_bin":"RNA binding site (Δ residues)",
+                 "delta_ProtS_cumu_bin":"Protein binding site (Δ residues)","delta_DNAb_binding_affinity_pKd":"DNA binding affinity (pKd)",
+                 "delta_RNAb_binding_affinity_pKd":"RNA binding affinity (pKd)","delta_ligand_nr_of_predicted_pockets":"Ligand binding № pockets",
+                 "delta_ligand_rank1_sas_points":"Ligand binding top pocket (SAS points)","delta_charge":"Net electric charge at pH 7 (pKa)",
+                 "delta_hydrophobicMoment":"Hydrophobic moment","delta_hydrophobicity":"Hydrophobicity (GRAVY)",
+                 "delta_isoElecPoint":"Isoelectric point (pH)", "delta_total.energy":"Folding energy ΔG (kJ/mol)"}
 ###
+
+
+### init ###
+if 'button_disabled' not in st.session_state:
+    st.session_state.button_disabled = False
+###
+
 
 features_shap = [f"{key}.sph" for key in FEATURE_NAMES_DICT.keys()]
 
 st.markdown(f"<div style='background-color: #017FFD; padding:10px; display: flex; justify-content: space-between; align-items: center;'> {img_to_html('images/logo_blue.png', size=20)} {img_to_html('images/umcg_logo.png', align='right', size=19)} </div>", unsafe_allow_html=True, width="stretch")
 # Title
-st.markdown("<h2 style='text-align: center; color: #666;'>DAVE1 scores VKGL Datasharing VUS</h2>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #B0B0B0;'>Pathogenicity prediction by the DAVE1 model, for more information: </p>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #666;'>DAVE1 scores VKGL Datasharing VUS</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: small; color: #B0B0B0;'>Pathogenicity prediction by the DAVE1 model, for more information: </p>", unsafe_allow_html=True)
 # Load VUS data
 vus_path = "vkgl_apr2024_VUS_pred.csv"
 if not os.path.exists(vus_path):
@@ -51,6 +60,7 @@ if not os.path.exists(vus_path):
 
 
 vkgl_consensus_vus = pd.read_csv(vus_path).sort_values(by="LP", ascending=False)
+vkgl_consensus_vus["AA change"] = vkgl_consensus_vus["delta_aaSeq"].apply(lambda x: f'{x[0]}{x[2:]}')
 
 c1, c2, c3 = st.columns(3)
 
@@ -64,7 +74,7 @@ else:
     filtered_data = vkgl_consensus_vus
 
 edited_df = st.dataframe(
-    filtered_data[["LP","gene","dna_variant_chrom","dna_variant_pos","dna_variant_ref","dna_variant_alt","delta_aaSeq","TranscriptID"]].rename(columns={"LP":"DAVE1 LP score",
+    filtered_data[["LP","gene","dna_variant_chrom","dna_variant_pos","dna_variant_ref","dna_variant_alt","AA change","TranscriptID"]].rename(columns={"LP":"DAVE1 LP score",
                                                                                                                                                             "dna_variant_chrom":"chrom",
                                                                                                                                                             "dna_variant_pos":"pos",
                                                                                                                                                             "dna_variant_ref":"ref",
@@ -83,6 +93,7 @@ if len(selected_rows) > 0:
     
     selected_prot = selected_df['UniProtID']
     gene_symbol = selected_df['gene']
+    prot_change = selected_df['AA change']
     selected_variant = selected_df['delta_aaSeq']
     localization = selected_df['ann_proteinLocalization']
     if type(selected_df['seqFt']) != float:
@@ -96,14 +107,24 @@ if len(selected_rows) > 0:
 
     selected_df = selected_df.rename(FEATURE_NAMES_DICT)
 
-    st.markdown(f"<p style='text-align: center; color: #333;'>DAVE1 Force plot {gene_symbol} {selected_variant} </p>", unsafe_allow_html=True)
-    st.pyplot(force_plot(selected_df[features_shap], selected_df[FEATURE_NAMES_DICT.values()], FEATURE_NAMES_DICT.values(), selected_df["LP"]))
+    st.markdown(f"<p style='text-align: center; color: #333;'>Feature contribution: <i>{gene_symbol}</i> {prot_change} </p>", unsafe_allow_html=True)
+    # Old matplotlib style: st.pyplot(force_plot(selected_df[features_shap], selected_df[FEATURE_NAMES_DICT.values()], FEATURE_NAMES_DICT.values(), selected_df["LP"]))
 
-    st.markdown(f"<p style='text-align: left; color: #555;'>Localization: {localization}</p>", unsafe_allow_html=True)
+    fig = explain_plot_plotly(selected_df[features_shap], selected_df[FEATURE_NAMES_DICT.values()], FEATURE_NAMES_DICT.values(), selected_df["LP"])
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False,"doubleClick": False })
+
+    st.markdown(f"<p style='text-align: left; color: #555;'>Residue information</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: left; font-size: small; color: #999;'>Localization: {localization}</p>", unsafe_allow_html=True)
     if feature:
-        st.markdown(f"<p style='text-align: left; color: #555;'>Sequence features: {' -> '.join(feature)}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: left; font-size: small; color: #999;'>Sequence features: {' -> '.join(feature)}</p>", unsafe_allow_html=True)
+    
 
-    if st.button("Visualize Variant"):
+    c1, c2, c3 = st.columns(3)
+
+    with c2:
+        viz_button = st.button("Visualize Variant", width="stretch", on_click=disable_button, disabled=st.session_state.button_disabled )
+
+    if viz_button:
         # Generate mutant file content
         mutant_string = f"{selected_variant};"
         mutant_file = "individual_list.txt"
@@ -189,8 +210,12 @@ if len(selected_rows) > 0:
             st.components.v1.html(view._make_html(), height=600)
             st.caption("Py3DMol visualization (wild-type AA in blue, mutant AA in red/pink): Top left = wild-type protein, " \
                 "Top right = mutant protein, Bottom left: wild-type protein Van der Waals force surface view, " \
-                "Bottom right = mutant protein Van der Waals force surface view.", width="stretch")
+                "Bottom right = mutant protein Van der Waals force surface view." \
+                " Controls: Rotate using the left mouseclick, zoom using scroll or right mouseclick.", width="stretch")
+        
         else:
             st.error("Could not find output PDB files for visualization.")
+        st.session_state.button_disabled = False  # Re-enable button
     else:
         st.markdown("<p style='text-align: center; color: #B0B0B0;'>Note: Large proteins may take longer to visualize </p>", unsafe_allow_html=True)
+        
