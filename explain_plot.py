@@ -38,13 +38,18 @@ def explain_plot_plotly(shap_values, raw_values, feature_names, predicted_score)
     ))
 
     fig.update_layout(
-        xaxis=dict(title="DAVE1 score", showgrid=False, range = [0,1]),
+        xaxis=dict(
+        title="DAVE1 score",
+        mirror='ticks',
+        showgrid=True,
+        range=[0, 1],
+        ),
         yaxis=dict(
             showticklabels=True,
-            showgrid=False,
+            showgrid=True,
         ),
         plot_bgcolor='white',
-        margin=dict(l=20, r=20, t=40, b=20)
+        margin=dict(l=20, r=20, t=0, b=20),
     )
 
     fig.layout.xaxis.fixedrange = True
