@@ -30,7 +30,7 @@ Ensure the following files and directories are present in the working directory:
 Install required Python packages:
 
 ```bash
-pip install streamlit matplotlib pandas numpy py3Dmol
+pip install streamlit matplotlib pandas numpy py3Dmol plotly
 
 ```
 
