@@ -19,9 +19,9 @@ def explain_plot_plotly(shap_values, raw_values, feature_names, predicted_score)
         hover_texts.append(f"{val:.3f}")
         colors.append("#FF0C57" if val > 0 else "#017FFD")
         if raw_values[name] % 1 == 0:
-            y_labels.append(f"{name} ({raw_values[name]})")
+            y_labels.append(f"{name}: {raw_values[name]}")
         else:
-            y_labels.append(f"{name} ({raw_values[name]:.03f})")
+            y_labels.append(f"{name}: {raw_values[name]:.03f}")
         cumulative += neg_val
 
     fig = go.Figure()
