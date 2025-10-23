@@ -1,14 +1,10 @@
 import os
-import subprocess
-import gzip
-import shutil
-import glob
 import base64
+import tarfile
 from pathlib import Path
 
 
 import streamlit as st
-import numpy as np
 import pandas as pd
 import py3Dmol
 
@@ -91,36 +87,25 @@ selected_rows = edited_df.selection.rows
 if len(selected_rows) > 0:
     st.markdown("---")
     selected_df = filtered_data.iloc[selected_rows[0]]
-    
-    selected_prot = selected_df['UniProtID']
-    gene_symbol = selected_df['gene']
-    prot_change = selected_df['AA change']
-    selected_variant = selected_df['delta_aaSeq']
-    localization = selected_df['ann_proteinLocalization']
+
     if type(selected_df['seqFt']) != float:
         feature = selected_df['seqFt'].split("|")[-1].split("~")
     else:
         feature = None
 
-    # Input for FoldX and PDB
-    foldx_executable =  "./foldx/foldx5_1Mac/foldx_20251231"
-    pdb_file_zipped = f'./AF_pdb/AF-{selected_prot}-F1-model_v4.pdb.gz'
-
     selected_df = selected_df.rename(FEATURE_NAMES_DICT)
 
-    st.markdown(f"<p style='text-align: center; color: #333;'>Feature contribution: <i>{gene_symbol}</i> {prot_change} </p>", unsafe_allow_html=True)
-    # Old matplotlib style: st.pyplot(force_plot(selected_df[features_shap], selected_df[FEATURE_NAMES_DICT.values()], FEATURE_NAMES_DICT.values(), selected_df["LP"]))
+    st.markdown(f"<p style='text-align: center; color: #333;'>Feature contribution: <i>{selected_df['gene']}</i> {selected_df['AA change']} </p>", unsafe_allow_html=True)
 
     fig = explain_plot_plotly(selected_df[features_shap], selected_df[FEATURE_NAMES_DICT.values()], FEATURE_NAMES_DICT.values(), selected_df["LP"])
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False,"doubleClick": False })
 
     st.markdown(f"<p style='text-align: left; color: #555;'>Residue information</p>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align: left; font-size: small; color: #999;'>Localization: {localization}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: left; font-size: small; color: #999;'>Localization: {selected_df['ann_proteinLocalization']}</p>", unsafe_allow_html=True)
     if feature:
         st.markdown(f"<p style='text-align: left; font-size: small; color: #999;'>Sequence features: {' -> '.join(feature)}</p>", unsafe_allow_html=True)
     
     st.markdown("---")
-
 
     c1, c2, c3 = st.columns(3)
 
@@ -128,96 +113,48 @@ if len(selected_rows) > 0:
         viz_button = st.button("Visualize Variant", width="stretch", on_click=disable_button, disabled=st.session_state.button_disabled )
 
     if viz_button:
-        # Generate mutant file content
-        mutant_string = f"{selected_variant};"
-        mutant_file = "individual_list.txt"
-        with open(mutant_file, "w") as f:
-            f.write(mutant_string)
+
         try:
-            with gzip.open(pdb_file_zipped, 'rb') as f_in:
-                with open(f"{selected_prot}.pdb", 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-            #st.success("Unzipped PDB file successfully.")
+            wt_pdb = f"protein_structures/{selected_df['UniProtID']}.pdb"
+            mutant_pdb = f"protein_structures/{selected_df['UniProtID']}_{selected_df['delta_aaSeq']}.pdb"
+            # Read PDB contents from archive
+            with tarfile.open("./mut_wt_structures_vkgl_vus.tar.gz", "r:gz") as tar:
+                wt_file = tar.extractfile(wt_pdb)
+                mutant_file = tar.extractfile(mutant_pdb)
+                wt_data = wt_file.read().decode() if wt_file else ""
+                mut_data = mutant_file.read().decode() if mutant_file else ""
         except Exception as e:
-            st.error(f"Error unzipping file: {e}")
+            st.error(f"Error opening files: {e}")
+            st.session_state.button_disabled = False  # Re-enable button
             st.stop()
-            
-        command = [
-            foldx_executable,
-            "--command=BuildModel",
-            f"--pdb={selected_prot}.pdb",
-            f"--mutant-file={mutant_file}"
-        ]
-
-        #st.write("Running FoldX command...")
-        try:
-            result = subprocess.run(command, capture_output=True, text=True)
-            #st.success("FoldX BuildModel completed.")
-            #st.code(result.stdout)
-            if result.stderr:
-                st.warning("Warnings or errors:")
-                #st.code(result.stderr)
-        except Exception as e:
-            st.error(f"Error running FoldX: {e}")
-            st.stop()
-
-        # Visualize wild-type and mutant structures
-        wt_pdb = f"{selected_prot}.pdb"
-        mutant_pdb = f"{selected_prot}_1.pdb"  # FoldX default output
-
-        if os.path.exists(wt_pdb) and os.path.exists(mutant_pdb):
-            with open(wt_pdb) as f:
-                wt_data = f.read()
-            with open(mutant_pdb) as f:
-                mut_data = f.read()
-            # remove mutant file after loading
-            fxout_files = glob.glob("*.fxout")
-
-            if fxout_files:
-                for file_path in fxout_files:
-                    try:
-                        os.remove(file_path)
-                    except Exception as e:
-                        st.error(f"Error deleting {file_path}: {e}")
-            try:
-                #remove used files
-                os.remove(mutant_pdb)
-                os.remove(wt_pdb)
-                os.remove(f"WT_{mutant_pdb}")
-                os.remove(mutant_file)
-                #st.info(f"Removed old files")
-            except Exception as e:
-                st.warning(f"Could not remove one or more files: {e}")
-
-            view = py3Dmol.view(width=700, height=600, linked=True, viewergrid=(2,2))
-
-            residue_number = int(selected_variant[2:-1])
-            chain = selected_variant[1]
-
-            view.addModel(wt_data, viewer=(0,0))
-            view.addModel(wt_data, viewer=(1,0))
-            view.setStyle({"stick": {"color": "#B0B0B0","scale": 0.4}, "cartoon": {'color': '#B0B0B0'}}, viewer=(0,0))
-            view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#017FFD'}}, viewer=(0,0))
-            view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#017FFD'}}, viewer=(1,0))
-            view.addSurface(py3Dmol.VDW, {'opacity':0.8}, viewer=(1,0))
-
-            view.addModel(mut_data, viewer=(0,1))
-            view.addModel(mut_data, viewer=(1,1))
-            view.setStyle({"stick": {"color": "#B0B0B0","scale": 0.4}, "cartoon": {'color': '#B0B0B0'}}, viewer=(0,1))
-            view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#FF0C57'}}, viewer=(0,1))
-            view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#FF0C57'}}, viewer=(1,1))
-            view.addSurface(py3Dmol.VDW,{'opacity':0.8}, viewer=(1,1))
-            
-            view.zoomTo({"chain": chain, "resi": residue_number})
-            view.setBackgroundColor("white")
-            st.components.v1.html(view._make_html(), height=600)
-            st.caption("Py3DMol visualization (wild-type AA in blue, mutant AA in red/pink): Top left = wild-type protein, " \
-                "Top right = mutant protein, Bottom left: wild-type protein Van der Waals force surface view, " \
-                "Bottom right = mutant protein Van der Waals force surface view." \
-                " Controls: Rotate using the left mouseclick, zoom using scroll or right mouseclick.", width="stretch")
         
-        else:
-            st.error("Could not find output PDB files for visualization.")
+        view = py3Dmol.view(width=700, height=600, linked=True, viewergrid=(2,2))
+
+        residue_number = int(selected_df['delta_aaSeq'][2:-1])
+        chain = selected_df['delta_aaSeq'][1]
+
+        view.addModel(wt_data, viewer=(0,0))
+        view.addModel(wt_data, viewer=(1,0))
+        view.setStyle({"stick": {"color": "#B0B0B0","scale": 0.4}, "cartoon": {'color': '#B0B0B0'}}, viewer=(0,0))
+        view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#017FFD'}}, viewer=(0,0))
+        view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#017FFD'}}, viewer=(1,0))
+        view.addSurface(py3Dmol.VDW, {'opacity':0.8}, viewer=(1,0))
+
+        view.addModel(mut_data, viewer=(0,1))
+        view.addModel(mut_data, viewer=(1,1))
+        view.setStyle({"stick": {"color": "#B0B0B0","scale": 0.4}, "cartoon": {'color': '#B0B0B0'}}, viewer=(0,1))
+        view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#FF0C57'}}, viewer=(0,1))
+        view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#FF0C57'}}, viewer=(1,1))
+        view.addSurface(py3Dmol.VDW,{'opacity':0.8}, viewer=(1,1))
+        
+        view.zoomTo({"chain": chain, "resi": residue_number})
+        view.setBackgroundColor("white")
+        st.components.v1.html(view._make_html(), height=600)
+        st.caption("Py3DMol visualization (wild-type AA in blue, mutant AA in red/pink): Top left = wild-type protein, " \
+            "Top right = mutant protein, Bottom left: wild-type protein Van der Waals force surface view, " \
+            "Bottom right = mutant protein Van der Waals force surface view." \
+            " Controls: Rotate using the left mouseclick, zoom using scroll or right mouseclick.", width="stretch")
+            
         st.session_state.button_disabled = False  # Re-enable button
     else:
         st.markdown("<p style='text-align: center; color: #B0B0B0;'>Note: Large proteins may take longer to visualize </p>", unsafe_allow_html=True)
