@@ -10,7 +10,6 @@ Our article is now in preprint! DOI: xxxx.xx.xx.xx
 
 - 🔍 Searchable and filterable VUS table from VKGL dataset
 - 📊 Force plot visualization of DAVE1 LP score contributions
-- 🧬 Protein structure modeling with FoldX
 - 🧪 3D visualization of wild-type and mutant proteins using Py3Dmol
 
 ---
@@ -28,7 +27,7 @@ Ensure the following files and directories are present in the working directory:
 
 Get the github repo:
 ```bash
-git clone https://github.com/molgenis/dave1_streamlit
+git clone https://github.com/Timniem/dave1_streamlit
 ```
 
 Install required Python packages (Tip: use a Python virtual environment or Conda environment):
