@@ -17,9 +17,9 @@ def img_to_bytes(img_path):
     return encoded
 def img_to_html(img_path, align=None, size=100):
     if align:
-        img_html = f"<img src='data:image/png;base64,{img_to_bytes(img_path)}' align={align} style='width:{size}%' class='img-fluid'>"
+        img_html = f"<img src='data:image/png;base64,{img_to_bytes(img_path)}' align={align} style='width:{size}px' class='img-fluid'>"
     else:
-        img_html = f"<img src='data:image/png;base64,{img_to_bytes(img_path)}' style='width:{size}%' class='img-fluid'>"
+        img_html = f"<img src='data:image/png;base64,{img_to_bytes(img_path)}' style='width:{size}px' class='img-fluid'>"
     return img_html
 
 # Define a callback function to disable the button
@@ -33,6 +33,9 @@ FEATURE_NAMES_DICT = {"delta_DNAs_cumu_bin":"DNA binding site (Δ residues) ","d
                  "delta_ligand_rank1_sas_points":"Ligand binding top pocket (SAS points)","delta_charge":"Net electric charge at pH 7 (pKa)",
                  "delta_hydrophobicMoment":"Hydrophobic moment","delta_hydrophobicity":"Hydrophobicity (GRAVY)",
                  "delta_isoElecPoint":"Isoelectric point (pH)", "delta_total.energy":"Folding energy ΔG (kJ/mol)"}
+
+HEADER_TEXT = "Pathogenicity prediction by the Digital Approximation of Variant Effect, version 1 (DAVE1) model on 11k+ VUS variants from the April 2024 release of the <a href=https://vkgl.molgeniscloud.org target='_blank' rel='noopener noreferrer' > VKGL datasharing</a>. \
+                The ideal cutoff point for Likely Pathogenic classification >= 0.286. For more information please refer to: DOI"
 ###
 
 
@@ -44,10 +47,20 @@ if 'button_disabled' not in st.session_state:
 
 features_shap = [f"{key}.sph" for key in FEATURE_NAMES_DICT.keys()]
 
-st.markdown(f"<div style='background-color: #017FFD; padding:10px; display: flex; justify-content: space-between; align-items: center;'> {img_to_html('images/logo_blue.png', size=20)} {img_to_html('images/umcg_logo.png', align='right', size=19)} </div>", unsafe_allow_html=True, width="stretch")
+# Top Bar
+
+st.markdown(f"""
+<div style='background-color: #017FFD; padding:10px; display: flex; justify-content: space-between; align-items: center;'>
+    <a href='https://molgenis.org' style='display: inline-block;' target='_blank' rel='noopener noreferrer'>
+      {img_to_html('images/logo_blue.png', size=150)}
+    </a>
+    {img_to_html('images/umcg_logo.png', align='right', size=100)}
+</div>
+""", unsafe_allow_html=True)
+
 # Title
-st.markdown("<h3 style='text-align: center; color: #666;'>DAVE1 scores VKGL Datasharing VUS</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: small; color: #B0B0B0;'>Pathogenicity prediction by the DAVE1 model, for more information: </p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #666; font-size:32px;'>DAVE1 scores VKGL Datasharing VUS</p>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: left; font-size: small; color: #B0B0B0;'>{HEADER_TEXT}</p>", unsafe_allow_html=True)
 # Load VUS data
 vus_path = "vkgl_apr2024_VUS_pred.csv"
 if not os.path.exists(vus_path):
@@ -109,6 +122,14 @@ if len(selected_rows) > 0:
 
     c1, c2, c3 = st.columns(3)
 
+    
+    with c1:
+        left, center, right = st.columns([1, 1, 1])  
+        with center:
+            toggle_state = st.toggle(" ", disabled=st.session_state.button_disabled)
+        st.markdown("<p style='text-align: left; color: #B0B0B0; font-size: 10px;'>Show Solvent Accessible Surface (SAS)<br>Default = Van der Waals forces (VDW)</p>", unsafe_allow_html=True)
+        
+        
     with c2:
         viz_button = st.button("Visualize Variant", width="stretch", on_click=disable_button, disabled=st.session_state.button_disabled )
 
@@ -132,28 +153,43 @@ if len(selected_rows) > 0:
 
         residue_number = int(selected_df['delta_aaSeq'][2:-1])
         chain = selected_df['delta_aaSeq'][1]
-
+        # Add the molecules
         view.addModel(wt_data, viewer=(0,0))
         view.addModel(wt_data, viewer=(1,0))
+        view.addModel(mut_data, viewer=(0,1))
+        view.addModel(mut_data, viewer=(1,1))
+        view.setStyle({})  # Hide all atom/bond styles
+
+        # WT
         view.setStyle({"stick": {"color": "#B0B0B0","scale": 0.4}, "cartoon": {'color': '#B0B0B0'}}, viewer=(0,0))
         view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#017FFD'}}, viewer=(0,0))
         view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#017FFD'}}, viewer=(1,0))
-        view.addSurface(py3Dmol.VDW, {'opacity':0.8}, viewer=(1,0))
-
-        view.addModel(mut_data, viewer=(0,1))
-        view.addModel(mut_data, viewer=(1,1))
+        if toggle_state:
+            view.addSurface(py3Dmol.SAS, {'opacity':0.8}, viewer=(1,0))
+            surface_shown = "solvent accessible surface"
+        else:
+            view.addSurface(py3Dmol.VDW, {'opacity':0.8}, viewer=(1,0))
+            surface_shown = "Van der Waals force"
+        
+        # MT
         view.setStyle({"stick": {"color": "#B0B0B0","scale": 0.4}, "cartoon": {'color': '#B0B0B0'}}, viewer=(0,1))
         view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#FF0C57'}}, viewer=(0,1))
         view.setStyle({'chain': chain, 'resi': residue_number}, {'stick': {'color': '#FF0C57'}}, viewer=(1,1))
-        view.addSurface(py3Dmol.VDW,{'opacity':0.8}, viewer=(1,1))
+
+        if toggle_state:
+            view.addSurface(py3Dmol.SAS, {'opacity':0.8}, viewer=(1,1))
+            
+        else:
+            view.addSurface(py3Dmol.VDW, {'opacity':0.8}, viewer=(1,1))
+            
         
         view.zoomTo({"chain": chain, "resi": residue_number})
         view.setBackgroundColor("white")
         st.components.v1.html(view._make_html(), height=600)
-        st.caption("Py3DMol visualization (wild-type AA in blue, mutant AA in red/pink): Top left = wild-type protein, " \
-            "Top right = mutant protein, Bottom left: wild-type protein Van der Waals force surface view, " \
-            "Bottom right = mutant protein Van der Waals force surface view." \
-            " Controls: Rotate using the left mouseclick, zoom using scroll or right mouseclick.", width="stretch")
+        st.markdown("<p style='text-align: center; color: #B0B0B0; font-size:smaller;' > <a href=https://github.com/avirshup/py3dmol >Py3DMol</a> visualization (wild-type AA in blue, mutant AA in red/pink): Top left = wild-type protein, " \
+            f"Top right = mutant protein, Bottom left: wild-type protein {surface_shown} surface view, " \
+            f"Bottom right = mutant protein {surface_shown} surface view." \
+            " Controls: Rotate using the left mouseclick, zoom using scroll or right mouseclick.</p>", width="stretch", unsafe_allow_html=True)
             
         st.session_state.button_disabled = False  # Re-enable button
     else:
