@@ -18,8 +18,8 @@ Our article is now in preprint! DOI: xxxx.xx.xx.xx
 
 Ensure the following files and directories are present in the working directory:
 
-- `vkgl_apr2024_VUS_pred.csv`: VUS prediction data downloaded from the dave1 resources.
-- `mut_wt_structures_vkgl_vus.tar.gz`: AlphaFold wild-type and mutant PDB files: 
+- `vkgl_apr2024_VUS_pred.csv`: VUS prediction data downloaded from: https://github.com/molgenis/dave1/blob/main/data/vkgl_apr2024_VUS_pred.csv.gz
+- `mut_wt_structures_vkgl_vus.tar.gz`: AlphaFold wild-type and mutant PDB files downloaded from: 10.5281/zenodo.17435480 <- link when uploaded
 
 ---
 
@@ -28,6 +28,18 @@ Ensure the following files and directories are present in the working directory:
 Get the github repo:
 ```bash
 git clone https://github.com/Timniem/dave1_streamlit
+```
+
+Download files:
+```bash
+# Go into the downloaded repository:
+cd dave1_streamlit
+# Download the required files: 
+wget https://github.com/molgenis/dave1/blob/main/data/vkgl_apr2024_VUS_pred.csv.gz
+wget https://zenodo.org/records/x.x.x
+#or curl using:
+#curl -O https://github.com/molgenis/dave1/blob/main/data/vkgl_apr2024_VUS_pred.csv.gz
+#curl -O https://zenodo.org/records/x.x.x
 ```
 
 Install required Python packages (Tip: use a Python virtual environment or Conda environment):
