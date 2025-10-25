@@ -114,7 +114,7 @@ if len(selected_rows) > 0:
 
     selected_df = selected_df.rename(FEATURE_NAMES_DICT)
 
-    st.markdown(f"<p style='text-align: center; color: #333;'>Feature contribution: <i>{selected_df['gene']}</i> {selected_df['AA change']} </p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center; color: #777;'>Feature contribution: <i>{selected_df['gene']}</i> {selected_df['AA change']} </p>", unsafe_allow_html=True)
 
     fig = explain_plot_plotly(selected_df[features_shap], selected_df[FEATURE_NAMES_DICT.values()], FEATURE_NAMES_DICT.values(), selected_df["LP"])
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False,"doubleClick": False })
@@ -193,7 +193,7 @@ if len(selected_rows) > 0:
         view.zoomTo({"chain": chain, "resi": residue_number})
         view.setBackgroundColor("white")
         st.components.v1.html(view._make_html(), height=600)
-        st.markdown("<p style='text-align: center; color: #B0B0B0; font-size:smaller;' > <a href=https://github.com/avirshup/py3dmol >Py3DMol</a> visualization (wild-type AA in blue, mutant AA in red/pink): Top left = wild-type protein, " \
+        st.markdown("<p style='text-align: left; color: #B0B0B0; font-size:smaller;' > <a href=https://github.com/avirshup/py3dmol >Py3DMol</a> visualization (wild-type AA in blue, mutant AA in red/pink): Top left = wild-type protein, " \
             f"Top right = mutant protein, Bottom left: wild-type protein {surface_shown} surface view, " \
             f"Bottom right = mutant protein {surface_shown} surface view." \
             " Controls: Rotate using the left mouseclick, zoom using scroll or right mouseclick.</p>", width="stretch", unsafe_allow_html=True)
