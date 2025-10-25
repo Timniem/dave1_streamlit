@@ -1,5 +1,6 @@
 [server]
 headless = true
+enableStaticServing = true
 #port = 7979
 
 [browser]
@@ -8,6 +9,17 @@ gatherUsageStats = false
 [client]
 showErrorDetails = "none"
 
+[[theme.fontFaces]]
+family="BebasNeue"
+url="app/static/BebasNeue/BebasNeue-Regular.ttf"
+
+[[theme.fontFaces]]
+family="IBMPlexSans"
+url="app/static/IBM_Plex_Sans/IBMPlexSans-VariableFont_wdth,wght.ttf"
+
+
 [theme]
 base = "light"
+headingFont = "BebasNeue"
+font = "IBMPlexSans"
 primaryColor = "#017FFD"

@@ -59,7 +59,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Title
-st.markdown("<p style='text-align: center; color: #666; font-size:32px;'>DAVE1 scores VKGL Datasharing VUS</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #777; font-size:40px;'>DAVE1 scores VKGL Datasharing VUS</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: left; font-size: small; color: #B0B0B0;'>{HEADER_TEXT}</p>", unsafe_allow_html=True)
 # Load VUS data
 vus_path = "vkgl_apr2024_VUS_pred.csv"
@@ -71,10 +71,14 @@ if not os.path.exists(vus_path):
 vkgl_consensus_vus = pd.read_csv(vus_path).sort_values(by="LP", ascending=False)
 vkgl_consensus_vus["AA change"] = vkgl_consensus_vus["delta_aaSeq"].apply(lambda x: f'{x[0]}{x[2:]}')
 
+st.markdown("<hr style='height:4px;border-width:0;background-color: #777' >", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: left; color: #777; font-size:30px; gap: 0rem'>Browse</h3>", unsafe_allow_html=True)
+
+
 c1, c2, c3 = st.columns(3)
 
 with c2:
-    search_term = st.text_input(" ").lower()
+    search_term = st.text_input(" ",label_visibility="collapsed").lower()
 
 if search_term:
     mask = vkgl_consensus_vus.astype(str).apply(lambda col: col.str.lower().str.contains(search_term))
@@ -98,7 +102,9 @@ edited_df = st.dataframe(
 selected_rows = edited_df.selection.rows
 
 if len(selected_rows) > 0:
-    st.markdown("---")
+    st.markdown("<hr style='height:4px;border-width:0;background-color: #777' >", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: left; color: #777; font-size:30px;'>Explanation</h3>", unsafe_allow_html=True)
+
     selected_df = filtered_data.iloc[selected_rows[0]]
 
     if type(selected_df['seqFt']) != float:
@@ -118,7 +124,8 @@ if len(selected_rows) > 0:
     if feature:
         st.markdown(f"<p style='text-align: left; font-size: small; color: #999;'>Sequence features: {' -> '.join(feature)}</p>", unsafe_allow_html=True)
     
-    st.markdown("---")
+    st.markdown("<hr style='height:4px;border-width:0;background-color: #777' >", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: left; color: #777; font-size:30px;'>Visualize</h3>", unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
 
@@ -131,7 +138,7 @@ if len(selected_rows) > 0:
         
         
     with c2:
-        viz_button = st.button("Visualize Variant", width="stretch", on_click=disable_button, disabled=st.session_state.button_disabled )
+        viz_button = st.button("Visualize protein", width="stretch", on_click=disable_button, disabled=st.session_state.button_disabled )
 
     if viz_button:
 
