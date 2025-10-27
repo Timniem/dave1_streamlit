@@ -59,7 +59,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Title
-st.markdown("<h1 style='text-align: center; color: #777; font-size:40px;'>DAVE1 scores VKGL Datasharing VUS</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #555; font-size:40px;'>DAVE1 scores VKGL Datasharing VUS</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: left; font-size: small; color: #B0B0B0;'>{HEADER_TEXT}</p>", unsafe_allow_html=True)
 # Load VUS data
 vus_path = "vkgl_apr2024_VUS_pred.csv"
@@ -71,8 +71,8 @@ if not os.path.exists(vus_path):
 vkgl_consensus_vus = pd.read_csv(vus_path).sort_values(by="LP", ascending=False)
 vkgl_consensus_vus["AA change"] = vkgl_consensus_vus["delta_aaSeq"].apply(lambda x: f'{x[0]}{x[2:]}')
 
-st.markdown("<hr style='height:4px;border-width:0;background-color: #777' >", unsafe_allow_html=True)
-st.markdown("<h3 style='text-align: left; color: #777; font-size:30px; gap: 0rem'>Browse</h3>", unsafe_allow_html=True)
+st.markdown("<hr style='height:4px;border-width:0;background-color: #555' >", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: left; color: #555; font-size:30px; gap: 0rem'>Browse</h3>", unsafe_allow_html=True)
 
 
 c1, c2, c3 = st.columns(3)
@@ -102,8 +102,8 @@ edited_df = st.dataframe(
 selected_rows = edited_df.selection.rows
 
 if len(selected_rows) > 0:
-    st.markdown("<hr style='height:4px;border-width:0;background-color: #777' >", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: left; color: #777; font-size:30px;'>Explanation</h3>", unsafe_allow_html=True)
+    st.markdown("<hr style='height:4px;border-width:0;background-color: #555' >", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: left; color: #555; font-size:30px;'>Explanation</h3>", unsafe_allow_html=True)
 
     selected_df = filtered_data.iloc[selected_rows[0]]
 
@@ -114,7 +114,7 @@ if len(selected_rows) > 0:
 
     selected_df = selected_df.rename(FEATURE_NAMES_DICT)
 
-    st.markdown(f"<p style='text-align: center; color: #777;'>Feature contribution: <i>{selected_df['gene']}</i> {selected_df['AA change']} </p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center; color: #555;'>Feature contribution: <i>{selected_df['gene']}</i> {selected_df['AA change']} </p>", unsafe_allow_html=True)
 
     fig = explain_plot_plotly(selected_df[features_shap], selected_df[FEATURE_NAMES_DICT.values()], FEATURE_NAMES_DICT.values(), selected_df["LP"])
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False,"doubleClick": False })
@@ -124,8 +124,8 @@ if len(selected_rows) > 0:
     if feature:
         st.markdown(f"<p style='text-align: left; font-size: small; color: #999;'>Sequence features: {' -> '.join(feature)}</p>", unsafe_allow_html=True)
     
-    st.markdown("<hr style='height:4px;border-width:0;background-color: #777' >", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: left; color: #777; font-size:30px;'>Visualize</h3>", unsafe_allow_html=True)
+    st.markdown("<hr style='height:4px;border-width:0;background-color: #555' >", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: left; color: #555; font-size:30px;'>Visualize</h3>", unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
 
